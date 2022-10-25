@@ -437,7 +437,7 @@ while [[ $# -gt 0 ]]; do
 			shift 2
 		;;
 		--numa_streams)
-			test_name=streams_numa
+			test_name=numa_streams
 			numa_streams=${2}
 			shift 2
 		;;
@@ -531,7 +531,7 @@ else
 		wdir=`pwd`
 		cd /tmp
 		if [[ $results_dir == "" ]]; then
-			results_dir=results_streams_numa_${tuned_setting}_$(date "+%Y.%m.%d-%H.%M.%S")
+			results_dir=results_numa__streams_${tuned_setting}_$(date "+%Y.%m.%d-%H.%M.%S")
 			rm results_${test_name}_${tuned_setting} 2> /dev/null
 			mkdir ${results_dir}
 			ln -s ${results_dir} results_${test_name}_${tuned_setting}
