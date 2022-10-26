@@ -42,7 +42,7 @@ size_list="0"
 opt_three=1
 opt_two=1
 cache_multiply=2
-nsizes=4
+nsizes=3
 cache_start_factor=1
 threads_multiple=2
 results_dir=""
@@ -278,8 +278,8 @@ set_up_test()
 run_stream()
 {
 	cd $run_dir
-	echo `pwd`/run_stream --cache_cap_size ${cache_cap_size} --iterations ${to_times_to_run}  --cache_start_size $cache_start_factor --optimize_lvl ${1} --cache_multiply $cache_multiply --numb_sizes $nsizes --thread_multiply $threads_multiple --results_dir ${results_dir} --host ${to_configuration} --size_list ${size_list} --numa_iterarations=${numa_iterations}
-	./run_stream --cache_cap_size ${cache_cap_size} --iterations ${to_times_to_run}  --cache_start_size $cache_start_factor --optimize_lvl ${1} --cache_multiply $cache_multiply --numb_sizes $nsizes --thread_multiply $threads_multiple --results_dir ${results_dir} --host ${to_configuration} --size_list ${size_list} --numa_streams ${numa_streams} --numa_iterarations=${numa_iterations} > /tmp/streams_results/${2}_opt_${1}
+	echo `pwd`/run_stream --numa_streams ${numa_streams} --cache_cap_size ${cache_cap_size} --iterations ${to_times_to_run}  --cache_start_size $cache_start_factor --optimize_lvl ${1} --cache_multiply $cache_multiply --numb_sizes $nsizes --thread_multiply $threads_multiple --results_dir ${results_dir} --host ${to_configuration} --size_list ${size_list} --numa_iterations=${numa_iterations} > /tmp/run_info
+	./run_stream  --numa_streams ${numa_streams} --cache_cap_size ${cache_cap_size} --iterations ${to_times_to_run}  --cache_start_size $cache_start_factor --optimize_lvl ${1} --cache_multiply $cache_multiply --numb_sizes $nsizes --thread_multiply $threads_multiple --results_dir ${results_dir} --host ${to_configuration} --size_list ${size_list} --numa_streams ${numa_streams} --numa_iterations=${numa_iterations} > /tmp/streams_results/${2}_opt_${1}
 	mv ${results_dir}_* /tmp/streams_results
 	cd ..
 }
