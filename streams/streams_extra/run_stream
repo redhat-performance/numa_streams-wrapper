@@ -17,6 +17,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+numa_iterations=5
 mem_offset=0
 stride=0
 numa_streams=0
@@ -47,6 +48,7 @@ ARGUMENT_LIST=(
 	"host"
 	"iterations"
 	"mem_offset"
+	"numa_iterations"
 	"numa_streams"
 	"numb_sizes"
 	"optimize_lvl"
@@ -97,6 +99,10 @@ while [[ $# -gt 0 ]]; do
 		;;
 		--mem_offset)
 			mem_offset=${2}
+			shift 2
+		;;
+		--numa_iterations
+			numa_iterations=${2}
 			shift 2
 		;;
 		--numa_streams)
@@ -306,9 +312,9 @@ install_new_streams()
 
 numa_stride()
 {
-   echo gcc -O2 -std=c99 -lpthread -lnuma -L ../numactl-2.0.7-rc2 -DNTIMES=${iterations} -DNUM_THREADS=$1 -DMEM_OFF=$2 -DN=$3 -DSTRIDE=1 stream-pthreads.c >> /tmp/debug
-   gcc -O2 -std=c99 -lpthread -lnuma -L ../numactl-2.0.7-rc2 -DNTIMES=${iterations} -DNUM_THREADS=$1 -DMEM_OFF=$2 -DN=$3 -DSTRIDE=1 stream-pthreads.c
-  ./a.out > stride_mem=${2}_threads=$1_cache=${4}kb_iterations=${iterations}
+   echo gcc -O2 -std=c99 -lpthread -lnuma -L ../numactl-2.0.7-rc2 -DNTIMES=${numa_iterations} -DNUM_THREADS=$1 -DMEM_OFF=$2 -DN=$3 -DSTRIDE=1 stream-pthreads.c >> /tmp/debug
+   gcc -O2 -std=c99 -lpthread -lnuma -L ../numactl-2.0.7-rc2 -DNTIMES=${numa_iterations} -DNUM_THREADS=$1 -DMEM_OFF=$2 -DN=$3 -DSTRIDE=1 stream-pthreads.c
+  ./a.out > stride_mem=${2}_threads=$1_cache=${4}kb_iterations=${numa_iterations}
 }
 
 run_numa_test()
