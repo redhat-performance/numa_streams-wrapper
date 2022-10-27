@@ -17,6 +17,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+mem_offset=0
 numa_iterations=5
 arguments="$@"
 
@@ -279,7 +280,7 @@ run_stream()
 {
 	cd $run_dir
 	echo `pwd`/run_stream --numa_streams ${numa_streams} --cache_cap_size ${cache_cap_size} --iterations ${to_times_to_run}  --cache_start_size $cache_start_factor --optimize_lvl ${1} --cache_multiply $cache_multiply --numb_sizes $nsizes --thread_multiply $threads_multiple --results_dir ${results_dir} --host ${to_configuration} --size_list ${size_list} --numa_iterations=${numa_iterations} > /tmp/run_info
-	./run_stream  --numa_streams ${numa_streams} --cache_cap_size ${cache_cap_size} --iterations ${to_times_to_run}  --cache_start_size $cache_start_factor --optimize_lvl ${1} --cache_multiply $cache_multiply --numb_sizes $nsizes --thread_multiply $threads_multiple --results_dir ${results_dir} --host ${to_configuration} --size_list ${size_list} --numa_streams ${numa_streams} --numa_iterations=${numa_iterations} > /tmp/streams_results/${2}_opt_${1}
+	./run_stream  --numa_streams ${numa_streams} --cache_cap_size ${cache_cap_size} --iterations ${to_times_to_run}  --cache_start_size $cache_start_factor --optimize_lvl ${1} --cache_multiply $cache_multiply --numb_sizes $nsizes --thread_multiply $threads_multiple --results_dir ${results_dir} --host ${to_configuration} --size_list ${size_list} --numa_streams ${numa_streams} --numa_iterations=${numa_iterations} --mem_offset=${mem_offset} > /tmp/streams_results/${2}_opt_${1}
 	mv ${results_dir}_* /tmp/streams_results
 	cd ..
 }
@@ -384,6 +385,7 @@ ARGUMENT_LIST=(
 	"cache_cap_size"
 	"cache_multiply"
 	"cache_start_factor"
+	"mem_offset"
 	"nsizes"
 	"numa_iterations"
 	"numa_streams"
@@ -432,6 +434,10 @@ while [[ $# -gt 0 ]]; do
 				echo Error: cache start factor must be greater then 0.
 				exit 1
 			fi
+			shift 2
+		;;
+		--mem_offset)
+			mem_offset=${2}
 			shift 2
 		;;
 		--nsizes)

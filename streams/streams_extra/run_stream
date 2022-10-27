@@ -1,4 +1,4 @@
-#$cache_size_kb!/bin/bash
+#cache_size_kb!/bin/bash
 #
 # Copyright (C) 2022  David Valin dvalin@redhat.com
 #
@@ -375,7 +375,7 @@ run_new_streams()
 
 	while [ $threads -lt $cpus ]
 	do
-		execute_numa_test $threads $base_cache_size
+		create_numa_cache_list $threads
 		threads=`echo "${threads}*2" | bc`
 	done
 	create_numa_cache_list $cpus
