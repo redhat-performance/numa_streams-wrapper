@@ -1,4 +1,3 @@
-#!/bin/bash
 #
 # Copyright (C) 2022  David Valin dvalin@redhat.com
 #
@@ -38,7 +37,6 @@ fi
 #
 # streams arguments
 #
-numa_streams=0
 size_list="0"
 opt_three=1
 opt_two=1
@@ -491,67 +489,29 @@ if [ $to_pbench -eq 1 ]; then
 else 
 	set_up_test
 	streams_run
-	if [ $numa_streams -eq 0 ]; then
-		cd /tmp
-		if [[ $results_dir == "" ]]; then
-			results_dir=results_streams_${tuned_setting}_$(date "+%Y.%m.%d-%H.%M.%S")
-			rm results_${test_name}_${tuned_setting} 2> /dev/null
-			mkdir ${results_dir}
-			ln -s ${results_dir} results_${test_name}_${tuned_setting}
-			mv streams_results $results_dir
-		else
-			mkdir ${results_dir}
-			mv streams_results $results_dir
-		fi
-		mv ${run_dir}/streams_build_options $results_dir
-		${curdir}/test_tools/move_data $curdir $results_dir
-		#
-		# report the results
-		#
-		pushd $results_dir/streams_results
-		rm results_${test_name}.csv 2> /dev/null
-		for rdir in `ls -d results_streams*`; do
-			if [ -d $rdir ]; then
-				pushd $rdir > /dev/null
-				retrieve_results
-				uchars=`echo $rdir | awk -v RS='_' 'END{print NR}'`
-				opt_level=`echo $rdir | cut -d'_' -f ${uchars} | cut -d'-' -f2`
-				retrieve_sys_config $opt_level
-				process_results results_${test_name}.wrkr
-				rm results_${test_name}.wrkr 2> /dev/null
-				popd > /dev/null
-			fi
-		done
-		mv /tmp/streams.out .
-		mv /tmp/test_results_report .
-		popd > /dev/null
-		tar hcf results_${test_name}_${to_tuned_setting}.tar $results_dir
-		rm -rf results_pbench.tar
-		find $results_dir  -type f | tar --transform 's/.*\///g' -cf results_pbench.tar --files-from=/dev/stdin
+	wdir=`pwd`
+	cd /tmp
+	if [[ $results_dir == "" ]]; then
+		results_dir=results_numa_streams_${tuned_setting}_$(date "+%Y.%m.%d-%H.%M.%S")
+		rm results_${test_name}_${tuned_setting} 2> /dev/null
+		mkdir ${results_dir}
+		ln -s ${results_dir} results_${test_name}_${tuned_setting}
+		cp /tmp/results_numa_streams/* $results_dir
 	else
-		wdir=`pwd`
-		cd /tmp
-		if [[ $results_dir == "" ]]; then
-			results_dir=results_numa__streams_${tuned_setting}_$(date "+%Y.%m.%d-%H.%M.%S")
-			rm results_${test_name}_${tuned_setting} 2> /dev/null
-			mkdir ${results_dir}
-			ln -s ${results_dir} results_${test_name}_${tuned_setting}
-			cp /tmp/results_numa_streams/* $results_dir
-		else
-			mkdir ${results_dir}
-			cp /tmp/results_numa_streams/* $results_dir
-		fi
-		${curdir}/test_tools/move_data $curdir $results_dir
-		#
-		# report the results
-		#
-		pushd $results_dir > /dev/null
-		mv /tmp/streams.out .
-		mv /tmp/test_results_report .
-		popd > /dev/null
-		tar hcf results_${test_name}_${to_tuned_setting}.tar $results_dir
-		rm -rf results_pbench.tar
-		find $results_dir  -type f | tar --transform 's/.*\///g' -cf results_pbench.tar --files-from=/dev/stdin
+		mkdir ${results_dir}
+		cp /tmp/results_numa_streams/* $results_dir
 	fi
+	${curdir}/test_tools/move_data $curdir $results_dir
+	#
+	# report the results
+	#
+	pushd $results_dir > /dev/null
+	mv /tmp/streams.out .
+	mv /tmp/test_results_report .
+	mv /tmp/numa_results/* .
+	tar hcf results_${test_name}_${to_tuned_setting}.tar $results_dir
+	rm -rf results_pbench.tar
+	popd > /dev/null
+	find $results_dir  -type f | tar --transform 's/.*\///g' -cf results_pbench.tar --files-from=/dev/stdin
 fi
 exit 0

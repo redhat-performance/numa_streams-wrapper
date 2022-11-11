@@ -215,7 +215,7 @@ run_numa_test()
 	
 	echo "gcc -O3 -std=c99 -lpthread -lnuma -L ../numactl-2.0.7-rc2 -DNTIMES=${numa_iterations} -DNUM_THREADS=$threads -DMEM_OFF=$mo -DN=$size_of_cache -DSTRIDE=$stride stream-pthreads.c" >> /root/numa_stream_build_info
 	gcc -O3 -std=c99 -lpthread -lnuma -L ../numactl-2.0.7-rc2 -DNTIMES=${numa_iterations} -DNUM_THREADS=$threads -DMEM_OFF=$mo -DN=$size_of_cache -DSTRIDE=$stride stream-pthreads.c
-	./a.out > stride=${stride}_mem_offset=${mo}_threads=$threads_cache=${size_of_cache}kb_iterations=${numa_iterations}
+	./a.out > stride=${stride}_mem_offset=${mo}_threads=${threads}_cache=${size_of_cache}kb_iterations=${numa_iterations}
 }
 
 walk_numa_stride()
@@ -313,3 +313,6 @@ setup_sizing
 base_cache_size=`echo "${base_cache_size}*1024" | bc`
 install_numa_streams
 run_numa_streams
+rm -rf /tmp/numa_results
+mkdir /tmp/numa_results
+cp * /tmp/numa_results
