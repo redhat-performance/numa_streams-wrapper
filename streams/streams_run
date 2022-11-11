@@ -18,7 +18,7 @@
 #
 
 mem_offset=0
-numa_iterations=5
+numa_iterations=10
 arguments="$@"
 
 curdir=`pwd`
@@ -279,20 +279,14 @@ set_up_test()
 run_stream()
 {
 	cd $run_dir
-	echo `pwd`/run_stream --numa_streams ${numa_streams} --cache_cap_size ${cache_cap_size} --iterations ${to_times_to_run}  --cache_start_size $cache_start_factor --optimize_lvl ${1} --cache_multiply $cache_multiply --numb_sizes $nsizes --thread_multiply $threads_multiple --results_dir ${results_dir} --host ${to_configuration} --size_list ${size_list} --numa_iterations=${numa_iterations} > /tmp/run_info
-	./run_stream  --numa_streams ${numa_streams} --cache_cap_size ${cache_cap_size} --iterations ${to_times_to_run}  --cache_start_size $cache_start_factor --optimize_lvl ${1} --cache_multiply $cache_multiply --numb_sizes $nsizes --thread_multiply $threads_multiple --results_dir ${results_dir} --host ${to_configuration} --size_list ${size_list} --numa_streams ${numa_streams} --numa_iterations=${numa_iterations} --mem_offset=${mem_offset} > /tmp/streams_results/${2}_opt_${1}
+	./run_stream   --cache_cap_size ${cache_cap_size} --iterations ${to_times_to_run}  --cache_start_size $cache_start_factor --optimize_lvl ${1} --cache_multiply $cache_multiply --numb_sizes $nsizes --thread_multiply $threads_multiple --results_dir ${results_dir} --host ${to_configuration} --size_list ${size_list} --numa_iterations=${numa_iterations} --mem_offset=${mem_offset} > /tmp/streams_results/${2}_opt_${1}
 	mv ${results_dir}_* /tmp/streams_results
 	cd ..
 }
 
 streams_run()
 {
-	if [[ $opt_three -ne 0 ]]; then
-		run_stream 3  "streams_O3_${to_tuned_setting}.out"
-	fi
-	if [[ $opt_two -ne 0 ]]; then
-		run_stream 2  "streams_O2_${to_tuned_setting}.out"
-	fi
+	run_stream 3  "streams_O3_${to_tuned_setting}.out"
 }
 
 tools_git=https://github.com/redhat-performance/test_tools-wrappers
@@ -446,11 +440,6 @@ while [[ $# -gt 0 ]]; do
 		;;
 		--numa_iterations)
 			numa_iterations=${2}
-			shift 2
-		;;
-		--numa_streams)
-			test_name=numa_streams
-			numa_streams=${2}
 			shift 2
 		;;
 		--opt2)
