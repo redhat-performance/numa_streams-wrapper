@@ -46,7 +46,7 @@ cache_start_factor=1
 threads_multiple=2
 results_dir=""
 cache_cap_size=0
-test_name="streams"
+test_name="numa_streams"
 
 #
 # Report results
