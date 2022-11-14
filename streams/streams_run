@@ -512,6 +512,7 @@ else
 	tar hcf results_${test_name}_${to_tuned_setting}.tar $results_dir
 	rm -rf results_pbench.tar
 	popd > /dev/null
+	tar hcf results_${test_name}_${to_tuned_setting}.tar $results_dir
 	find $results_dir  -type f | tar --transform 's/.*\///g' -cf results_pbench.tar --files-from=/dev/stdin
 fi
 exit 0
