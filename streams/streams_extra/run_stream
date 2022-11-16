@@ -204,8 +204,8 @@ install_numa_streams()
 	ln -s /usr/include/numa.h
 	popd
 	rm -rf *offset*
-	sed "s/bytes\[j\]\/avgtime\[j\],/bytes\[j\]\/mintime\[j\],/" < stream-pthreads.c > foo
-	mv foo stream-pthreads.c
+#	sed "s/bytes\[j\]\/avgtime\[j\],/bytes\[j\]\/mintime\[j\],/" < stream-pthreads.c > foo
+#	mv foo stream-pthreads.c
 	sed "s/numa_max_node();/numa_max_node() + 1;"/g < stream-pthreads.c > temp
 	mv temp stream-pthreads.c
 }
