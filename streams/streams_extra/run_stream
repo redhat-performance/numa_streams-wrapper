@@ -282,15 +282,13 @@ run_numa_streams()
 	echo Test:MB/sec > highest.csv
 
 	# DJV
-	exit
-	record_numa_stream Read
 	record_numa_stream Copy
 	record_numa_stream Scale
 	record_numa_stream Add
 	record_numa_stream Triad
 	rm -rf /tmp/results_numa_streams
 	mkdir /tmp/results_numa_streams
-	cp *stride* /tmp/results_numa_streams
+	cp *meg_threads* /tmp/results_numa_streams
 	cp *csv /tmp/results_numa_streams
 }
 
