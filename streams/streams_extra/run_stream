@@ -256,9 +256,9 @@ create_numa_cache_list()
 
 record_numa_stream()
 {
-	value=`grep ${1} *stride* | awk '{print $2}' |sort -n | tail -1`
+	value=`grep ${1} *meg_threads* | awk '{print $2}' |sort -n | tail -1`
 	echo ${1}:${value} >> highest.csv
-	value=`grep ${1} *stride* | awk '{print $5}' |sort -n | tail -1`
+	value=`grep ${1} *meg_threads* | awk '{print $5}' |sort -n | tail -1`
 	echo ${1}:${value} >> min.csv
 }
 
