@@ -194,85 +194,63 @@ setup_sizing()
 
 install_numa_streams()
 {
-	dnf install -y numactl-libs.x86_64
-	dnf install -y numactl-devel.x86_64
-	git clone https://github.com/larsbergstrom/NUMA-STREAM
-	cd NUMA-STREAM
-	cp stream-pthreads.c back
-	mkdir ../numactl-2.0.7-rc2
-	pushd ../numactl-2.0.7-rc2
-	ln -s /usr/include/numa.h
+	dnf install wget gcc gcc-c++ autoconf hwloc hwloc-gui libomp  -y
+	git clone https://github.com/jemalloc/jemalloc.git
+	pushd jemalloc
+	./autogen.sh
+	make
+	make install
 	popd
-	rm -rf *offset*
-#	sed "s/bytes\[j\]\/avgtime\[j\],/bytes\[j\]\/mintime\[j\],/" < stream-pthreads.c > foo
-#	mv foo stream-pthreads.c
-	sed "s/numa_max_node();/numa_max_node() + 1;"/g < stream-pthreads.c > temp
-	mv temp stream-pthreads.c
+
+	mkdir /opt/AMD
+	touch /opt/AMD/setenv_AOCC.sh
+
+	wget http://www.phoronix-test-suite.com/benchmark-files/amd-stream-dynamic-1.tar.xz
+
+	tar -xf amd-stream-dynamic-1.tar.xz
+	cd amd-stream-dynamic
+	files=`grep "fnt-store=aggressive" * | cut -d: -f1`
+	for i in $files; do
+        	echo in here
+        	sed "s/-fnt-store=aggressive//" < $i > temp
+		rm -rf $i
+        	mv temp $i
+	done
+
+	export CC=gcc
+	export CXX=g++
+
+	chmod 755 build_stream_dynamic.py
+
+	#
+	# No cpu_governor on cloud systems
+	#
+	files=`grep set_cpu_governor * |cut -d':' -f1 | sort -u`
+	for i in $files; do
+		sed "s/^set_cpu_governor$/# set_cpu_governor/g" < $i > foo
+		rm -rf $i
+		mv foo $i
+	done
+	./build_stream_dynamic.py
+	chmod 755 ./run_stream_dynamic.py
 }
 
 run_numa_test()
 {
 	threads=$1
 	size_of_cache=$2
-	mo=$3
-	stride=$4
-	
-	echo "gcc -O3 -std=c99 -lpthread -lnuma -L ../numactl-2.0.7-rc2 -DNTIMES=${numa_iterations} -DNUM_THREADS=$threads -DMEM_OFF=$mo -DN=$size_of_cache -DSTRIDE=$stride stream-pthreads.c" >> /root/numa_stream_build_info
-	gcc -O3 -std=c99 -lpthread -lnuma -L ../numactl-2.0.7-rc2 -DNTIMES=${numa_iterations} -DNUM_THREADS=$threads -DMEM_OFF=$mo -DN=$size_of_cache -DSTRIDE=$stride stream-pthreads.c
-	./a.out > stride=${stride}_mem_offset=${mo}_threads=${threads}_cache=${size_of_cache}kb_iterations=${numa_iterations}
+
+	echo ./run_stream_dynamic.py --threads $1 --stream_array_mb $2  --ntimes 100 > ${2}meg_threads=${1}_passes=100
+	./run_stream_dynamic.py --threads $1 --stream_array_mb $2  --ntimes 100 >> ${2}meg_threads=${1}_passes=100
 }
-
-walk_numa_stride()
-{
-	threads=$1
-	size_of_cache=$2
-	mo=$3
-
-	stride_offset=`echo $strides | sed "s/,/ /g"`
-
-	for stride in $stride_offset
-	do
-		run_numa_test $threads $size_of_cache $mo $stride
-	done
-}
-
-execute_numa_test()
-{
-	threads=$1
-	size_of_cache=$2
-
-	mem_offset_list=`echo $mem_offset | sed "s/,/ /g"`
-
-	for mo in $mem_offset_list
-	do
-		walk_numa_stride $threads $size_of_cache $mo
-	done
-}
-
 
 create_numa_cache_list()
 {
 	threads=$1
-	multiple_size=$cache_multiply
-	use_cache=$base_cache_size
-	cache_size_kb=`echo ${use_cache}/1024 | bc`
-	for test_size  in 1 `seq 2 1 $numb_sizes`;
+	cache_size_mb="512 1000 2000 4000"
+	for cache_size  in $cache_size_mb
 	do
-		if [[ ${cache_cap_size} != 0 ]]; then
-			if [ ${cache_size_kb} -gt ${cache_cap_size} ]; then
-				continue
-			fi
-		fi
-
-		if [[ $streams_exec == "" ]]; then
-			streams_exec=$stream
-		else
-			streams_exec=$streams_exec" "$stream
-		fi
-		execute_numa_test $threads $use_cache $cache_size_kb
-		use_cache=`echo ${base_cache_size}*${multiple_size} | bc`
-		cache_size_kb=`echo ${use_cache}/1024 | bc`
-		multiple_size=`echo ${multiple_size}*${cache_multiply} | bc`
+		run_numa_test $threads $cache_size
 	done
 }
 
@@ -296,7 +274,6 @@ run_numa_streams()
 		create_numa_cache_list $threads
 		threads=`echo "${threads}*2" | bc`
 	done
-	echo 1 create_numa_cache_list $threads >> /root/debug_dups
 	create_numa_cache_list $cpus
 
 	#
@@ -304,6 +281,8 @@ run_numa_streams()
 	#
 	echo Test:MB/sec > highest.csv
 
+	# DJV
+	exit
 	record_numa_stream Read
 	record_numa_stream Copy
 	record_numa_stream Scale
