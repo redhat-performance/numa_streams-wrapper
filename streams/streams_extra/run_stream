@@ -219,17 +219,15 @@ install_numa_streams()
 
 	export CC=gcc
 	export CXX=g++
-
-	chmod 755 build_stream_dynamic.py
-
 	#
 	# No cpu_governor on cloud systems
 	#
 	files=`grep set_cpu_governor * |cut -d':' -f1 | sort -u`
 	for i in $files; do
-		sed "s/^set_cpu_governor$/# set_cpu_governor/g" < $i > foo
+		sed "s/^set_cpu_governor$/# set_cpu_governor/g" < $i | sed "s/-mavx2//g" > foo
 		rm -rf $i
 		mv foo $i
+		chmod 755 $i
 	done
 	./build_stream_dynamic.py
 	chmod 755 ./run_stream_dynamic.py
