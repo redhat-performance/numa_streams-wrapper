@@ -256,8 +256,8 @@ set_up_test()
 	if [[ $results_dir == "" ]]; then
 		results_dir=results_${test_name}_${to_tuned_setting}_`date +"%Y%m%d%H%M%S"`
 	fi
-	if [ -d /$run_dir/run_stream ]; then
-		rm -rf /$run_dir/run_stream 2> /dev/null
+	if [ -d /$run_dir/run_numa_stream ]; then
+		rm -rf /$run_dir/run_numa_stream 2> /dev/null
 	fi
 	if [ -d /tmp/streams_results ]; then
 		rm -rf /tmp/streams_results 2> /dev/null
@@ -267,24 +267,24 @@ set_up_test()
 	#
 	# Setup the run script
 	#
-	cp $run_dir/streams_extra/run_stream $run_dir
-	chmod 755 $run_dir/run_stream
+	cp $run_dir/numa_streams_extra/run_numa_stream $run_dir
+	chmod 755 $run_dir/run_numa_stream
 }
 
 #
 # Run the test.
 #
-run_stream()
+run_numa_stream()
 {
 	cd $run_dir
-	./run_stream   --cache_cap_size ${cache_cap_size} --iterations ${to_times_to_run}  --cache_start_size $cache_start_factor --optimize_lvl ${1} --cache_multiply $cache_multiply --numb_sizes $nsizes --thread_multiply $threads_multiple --results_dir ${results_dir} --host ${to_configuration} --size_list ${size_list} --numa_iterations=${numa_iterations} --mem_offset=${mem_offset} > /tmp/streams_results/${2}_opt_${1}
+	./run_numa_stream   --cache_cap_size ${cache_cap_size} --iterations ${to_times_to_run}  --cache_start_size $cache_start_factor --optimize_lvl ${1} --cache_multiply $cache_multiply --numb_sizes $nsizes --thread_multiply $threads_multiple --results_dir ${results_dir} --host ${to_configuration} --size_list ${size_list} --numa_iterations=${numa_iterations} --mem_offset=${mem_offset} > /tmp/streams_results/${2}_opt_${1}
 	mv ${results_dir}_* /tmp/streams_results
 	cd ..
 }
 
 streams_run()
 {
-	run_stream 3  "streams_O3_${to_tuned_setting}.out"
+	run_numa_stream 3  "streams_O3_${to_tuned_setting}.out"
 }
 
 tools_git=https://github.com/redhat-performance/test_tools-wrappers
