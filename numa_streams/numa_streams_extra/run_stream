@@ -1,0 +1,299 @@
+#!/bin/bash
+#
+# Copyright (C) 2022  David Valin dvalin@redhat.com
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+#
+
+numa_iterations=10
+mem_offset=0
+strides=1
+iterations=10
+tuned_config="None"
+optim=3
+optim_opt=""
+cache_multiply=2
+numb_sizes=4
+streams_exec=""
+start_at=1
+thread_multiply=2
+use_cache=""
+base_cache_size=""
+resultdir=""
+cpus_per_node=""
+cache_cap_size=0
+host=`hostname`
+size_list="0"
+
+#
+# Define options
+#
+ARGUMENT_LIST=(
+	"cache_cap_size"
+	"cache_multiply"
+	"cache_start_size"
+	"host"
+	"iterations"
+	"mem_offset"
+	"numa_iterations"
+	"numb_sizes"
+	"optimize_lvl"
+	"results_dir"
+	"size_list"
+	"strides"
+	"thread_multiply"
+)
+
+NO_ARGUMENTS=(
+        "usage"
+)
+
+
+# read arguments
+opts=$(getopt \
+    --longoptions "$(printf "%s:," "${ARGUMENT_LIST[@]}")" \
+    --longoptions "$(printf "%s," "${NO_ARGUMENTS[@]}")" \
+    --name "$(basename "$0")" \
+    --options "h" \
+    -- "$@"
+)
+
+eval set --$opts
+
+while [[ $# -gt 0 ]]; do
+	echo $1 >> /tmp/junk
+	case "$1" in
+		--cache_cap_size)
+			cache_cap_size=${2}
+			shift 2
+		;;
+		--cache_multiply)
+			cache_multiply=${2}
+			shift 2
+		;;
+		--cache_start_size)
+			ache_start_size=${2}
+			shift 2
+		;;
+		--host)
+			host=${2}
+			shift 2
+		;;
+		--iterations)
+			iterations=${2}
+			shift 2
+		;;
+		--mem_offset)
+			mem_offset=${2}
+			shift 2
+		;;
+		--numa_iterations)
+			numa_iterations=${2}
+			shift 2
+		;;
+		--numb_sizes)
+			numb_sizes=${2}
+			shift 2
+		;;
+		--optimize_lvl)
+			optim=${2}
+			shift 2
+		;;
+			
+		--results_dir)
+			echo setting result dir
+			resultdir=${2}
+			shift 2
+		;;
+		--size_list)
+			size_list=${2}
+			shift 2
+		;;
+		--strides)
+			strides=${2}
+			shift 2
+		;;
+		--thread_multiply)
+			thread_multiply=${2}
+			if [[ $thread_multiply == "1" ]]; then
+				echo Thread multiple can not be 1, defaulting to 2
+				thread_multiply=2
+			fi
+			shift 2
+		;;
+		--usage)
+			echo usage to come
+			exit
+		;;
+		--)
+			break;
+		;;
+	esac
+done
+
+
+setup_sizing()
+{
+	numa_nodes=`lscpu | grep NUMA | grep CPU | wc -l`
+
+	if [ $optim -eq 3 ]; then
+		echo Optimization=O3
+		optim_opt="-O3"
+	else
+		echo Optimization=02
+		optim_opt="-O2"
+	fi
+	if [[ $resultdir != "" ]]; then
+		resultdir="${resultdir}_${optim_opt}"
+		mkdir $resultdir
+	fi
+	cpus=`lscpu | grep "^CPU(s)" | cut -d: -f 2`
+	echo cpus=${cpus}
+
+	cpus_per_node=`echo ${cpus}/${numa_nodes} | bc`
+
+	#
+	# Sizing from Pete Rival
+	#
+	cpu_list=`cat /proc/cpuinfo | grep "processor"| cut -d: -f 2`
+
+	#
+	# Some systems have a third-level cache that's not an classic L3 cache but rather a System-Level Cache (SLC).
+	# Arm Neoverse-based systems are among these special cases.  At this time that means there's no L3 cache in the
+	# sysfs hierarchy.  Unless and until that changes, special case things with hardcoded numbers because there's
+	# no good way to tell otherwise.  We'll want to revisit this if more systems with different-sized SLCs arrive.
+	#
+
+	if [ -f /sys/devices/system/cpu/cpu0/cache/index3/shared_cpu_list ]; then
+		top_level_caches=`cat /sys/devices/system/cpu/cpu*/cache/index3/shared_cpu_list |sort | uniq |wc -l`
+		base_cache_size=`cat /sys/devices/system/cpu/cpu0/cache/index*/size | sed -e s/K// -e s/M// | sort -n | tail -1`
+	else
+		#
+		# Neoverse systems have a 32MB SLC that is not exposed properly.  Work around that here.
+		#
+		top_level_caches=$numa_nodes
+		base_cache_size=$(( 32768 * numa_nodes ))
+	fi
+	#
+	# Numa streams operates on a long, not bytes like regular streams does.
+	#
+	base_cache_size=`echo "${base_cache_size} * ${start_at}/8" | bc`
+}
+
+install_numa_streams()
+{
+	dnf install wget gcc gcc-c++ autoconf hwloc hwloc-gui libomp  -y
+	git clone https://github.com/jemalloc/jemalloc.git
+	pushd jemalloc
+	./autogen.sh
+	make
+	make install
+	popd
+
+	mkdir /opt/AMD
+	touch /opt/AMD/setenv_AOCC.sh
+
+	wget http://www.phoronix-test-suite.com/benchmark-files/amd-stream-dynamic-1.tar.xz
+
+	tar -xf amd-stream-dynamic-1.tar.xz
+	cd amd-stream-dynamic
+	files=`grep "fnt-store=aggressive" * | cut -d: -f1`
+	for i in $files; do
+        	echo in here
+        	sed "s/-fnt-store=aggressive//" < $i > temp
+		rm -rf $i
+        	mv temp $i
+	done
+
+	export CC=gcc
+	export CXX=g++
+	#
+	# No cpu_governor on cloud systems
+	#
+	files=`grep set_cpu_governor * |cut -d':' -f1 | sort -u`
+	for i in $files; do
+		sed "s/^set_cpu_governor$/# set_cpu_governor/g" < $i | sed "s/-mavx2//g" > foo
+		rm -rf $i
+		mv foo $i
+		chmod 755 $i
+	done
+	./build_stream_dynamic.py
+	chmod 755 ./run_stream_dynamic.py
+}
+
+run_numa_test()
+{
+	threads=$1
+	size_of_cache=$2
+
+	echo ./run_stream_dynamic.py --threads $1 --stream_array_mb $2  --ntimes 100 > ${2}meg_threads=${1}_passes=100
+	./run_stream_dynamic.py --threads $1 --stream_array_mb $2  --ntimes 100 >> ${2}meg_threads=${1}_passes=100
+}
+
+create_numa_cache_list()
+{
+	threads=$1
+	cache_size_mb="512 1000 2000 4000"
+	for cache_size  in $cache_size_mb
+	do
+		run_numa_test $threads $cache_size
+	done
+}
+
+record_numa_stream()
+{
+	value=`grep ${1} *meg_threads* | awk '{print $2}' |sort -n | tail -1`
+	echo ${1}:${value} >> highest.csv
+	value=`grep ${1} *meg_threads* | awk '{print $5}' |sort -n | tail -1`
+	echo ${1}:${value} >> min.csv
+}
+
+
+run_numa_streams()
+{
+	cpus=`cat /proc/cpuinfo | grep processor | wc -l`
+	threads=1
+
+	while [ $threads -lt $cpus ]
+	do
+		echo create_numa_cache_list $threads >> /root/debug_dups
+		create_numa_cache_list $threads
+		threads=`echo "${threads}*2" | bc`
+	done
+	create_numa_cache_list $cpus
+
+	#
+	# Record highest
+	#
+	echo Test:MB/sec > highest.csv
+
+	# DJV
+	record_numa_stream Copy
+	record_numa_stream Scale
+	record_numa_stream Add
+	record_numa_stream Triad
+	rm -rf /tmp/results_numa_streams
+	mkdir /tmp/results_numa_streams
+	cp *meg_threads* /tmp/results_numa_streams
+	cp *csv /tmp/results_numa_streams
+}
+
+setup_sizing
+base_cache_size=`echo "${base_cache_size}*1024" | bc`
+install_numa_streams
+run_numa_streams
+rm -rf /tmp/numa_results
+mkdir /tmp/numa_results
+cp * /tmp/numa_results
