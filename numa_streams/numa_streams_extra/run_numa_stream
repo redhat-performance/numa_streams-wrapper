@@ -196,11 +196,11 @@ install_numa_streams()
 {
 	dnf install wget gcc gcc-c++ autoconf hwloc hwloc-gui libomp  -y
 	git clone https://github.com/jemalloc/jemalloc.git
-	pushd jemalloc
+	pushd jemalloc > /dev/null
 	./autogen.sh
 	make
 	make install
-	popd
+	popd > /dev/null
 
 	mkdir /opt/AMD
 	touch /opt/AMD/setenv_AOCC.sh
