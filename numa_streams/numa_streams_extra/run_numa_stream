@@ -205,6 +205,9 @@ install_numa_streams()
 	mkdir /opt/AMD
 	touch /opt/AMD/setenv_AOCC.sh
 
+	#
+	# We are getting the test from the phoronix git.
+	#
 	wget http://www.phoronix-test-suite.com/benchmark-files/amd-stream-dynamic-1.tar.xz
 
 	tar -xf amd-stream-dynamic-1.tar.xz
