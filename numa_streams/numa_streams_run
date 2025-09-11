@@ -353,9 +353,6 @@ fi
 # to_home_root: home directory
 # to_configuration: configuration information
 # to_times_to_run: number of times to run the test
-# to_pbench: Run the test via pbench
-# to_puser: User running pbench
-# to_run_label: Label for the run
 # to_user: User on the test system running the test
 # to_sys_type: for results info, basically aws, azure or local
 # to_sysname: name of the system
@@ -484,36 +481,32 @@ while [[ $# -gt 0 ]]; do
 	esac
 done
 
-if [ $to_pbench -eq 1 ]; then
-	$TOOLS_BIN/execute_via_pbench --cmd_executing "$0" $arguments --test $test_name --spacing 11 --pbench_stats $to_pstats
-else 
-	set_up_test
-	streams_run
-	wdir=`pwd`
-	cd /tmp
-	if [[ $results_dir == "" ]]; then
-		results_dir=results_numa_streams_${tuned_setting}_$(date "+%Y.%m.%d-%H.%M.%S")
-		rm results_${test_name}_${tuned_setting} 2> /dev/null
-		mkdir ${results_dir}
-		ln -s ${results_dir} results_${test_name}_${tuned_setting}
-		cp /tmp/results_numa_streams/* $results_dir
-	else
-		mkdir ${results_dir}
-		cp /tmp/results_numa_streams/* $results_dir
-	fi
-	${curdir}/test_tools/move_data $curdir $results_dir
-	#
-	# report the results
-	#
-	pushd $results_dir > /dev/null
-	mv /tmp/streams.out .
-	mv /tmp/test_results_report .
-	mv /tmp/numa_results/* .
-	tar hcf results_${test_name}_${to_tuned_setting}.tar $results_dir
-	rm -rf results_pbench.tar
-	popd > /dev/null
-	tar hcf results_${test_name}_${to_tuned_setting}.tar $results_dir
-	working_dir=`ls -rtd /tmp/results*${test_name}* | grep -v tar | tail -1`
-	find $working_dir  -type f | tar --transform 's/.*\///g' -cf results_pbench.tar --files-from=/dev/stdin
+set_up_test
+streams_run
+wdir=`pwd`
+cd /tmp
+if [[ $results_dir == "" ]]; then
+	results_dir=results_numa_streams_${tuned_setting}_$(date "+%Y.%m.%d-%H.%M.%S")
+	rm results_${test_name}_${tuned_setting} 2> /dev/null
+	mkdir ${results_dir}
+	ln -s ${results_dir} results_${test_name}_${tuned_setting}
+	cp /tmp/results_numa_streams/* $results_dir
+else
+	mkdir ${results_dir}
+	cp /tmp/results_numa_streams/* $results_dir
 fi
+${curdir}/test_tools/move_data $curdir $results_dir
+#
+# report the results
+#
+pushd $results_dir > /dev/null
+mv /tmp/streams.out .
+mv /tmp/test_results_report .
+mv /tmp/numa_results/* .
+tar hcf results_${test_name}_${to_tuned_setting}.tar $results_dir
+rm -rf results_pbench.tar
+popd > /dev/null
+tar hcf results_${test_name}_${to_tuned_setting}.tar $results_dir
+working_dir=`ls -rtd /tmp/results*${test_name}* | grep -v tar | tail -1`
+find $working_dir  -type f | tar --transform 's/.*\///g' -cf results_pbench.tar --files-from=/dev/stdin
 exit 0
