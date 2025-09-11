@@ -93,7 +93,7 @@ process_results()
 	# Sort the data based on # sockets.  To do this, dump the data to a temp
 	# file and sort it. We expect the results file to  already be sorted based on size.
 	#
-	data_file=$(mktemp /tmp/streams_reduce_.XXXXXX)
+	data_file=$(mktemp /tmp/numa_streams_reduce_.XXXXXX)
 	for item in ${data[*]}; do
 		if [ $item_count -eq $data_index ]; then
 			break;
@@ -242,7 +242,7 @@ retrieve_sys_config()
 	echo "% Socket(s) "`grep "Socket(s):" stream* | cut -d: -f 3 | sort -u`  >> ../results_${test_name}.csv
 	echo "% Model_name "`grep "^Model name" stream* | cut -d: -f 3 | sort -u` >> ../results_${test_name}.csv
 	echo "% total_memory "`grep "MemTotal:" /proc/meminfo | cut -d':' -f 2 | sed "s/ //g"` >> ../results_${test_name}.csv
-	echo "% streams_version_# "`grep "^STREAM version" stream* | cut -d':' -f 3 | cut -d' ' -f2 | sort -u` >> ../results_${test_name}.csv
+	echo "% numa_streams_version_# "`grep "^Numa version" numa_stream* | cut -d':' -f 3 | cut -d' ' -f2 | sort -u` >> ../results_${test_name}.csv
 }
 
 #
@@ -259,15 +259,15 @@ set_up_test()
 	if [ -d /$run_dir/run_numa_stream ]; then
 		rm -rf /$run_dir/run_numa_stream 2> /dev/null
 	fi
-	if [ -d /tmp/streams_results ]; then
-		rm -rf /tmp/streams_results 2> /dev/null
+	if [ -d /tmp/numa_streams_results ]; then
+		rm -rf /tmp/numa_streams_results 2> /dev/null
 	fi
-	mkdir /tmp/streams_results
+	mkdir /tmp/numa_streams_results
 
 	#
 	# Setup the run script
 	#
-	cp $run_dir/numa_streams_extra/run_numa_stream $run_dir
+	cp $run_dir/numa_numa_streams_extra/run_numa_stream $run_dir
 	chmod 755 $run_dir/run_numa_stream
 }
 
@@ -277,14 +277,14 @@ set_up_test()
 run_numa_stream()
 {
 	cd $run_dir
-	./run_numa_stream   --cache_cap_size ${cache_cap_size} --iterations ${to_times_to_run}  --cache_start_size $cache_start_factor --optimize_lvl ${1} --cache_multiply $cache_multiply --numb_sizes $nsizes --thread_multiply $threads_multiple --results_dir ${results_dir} --host ${to_configuration} --size_list ${size_list} --numa_iterations=${numa_iterations} --mem_offset=${mem_offset} > /tmp/streams_results/${2}_opt_${1}
-	mv ${results_dir}_* /tmp/streams_results
+	./run_numa_stream   --cache_cap_size ${cache_cap_size} --iterations ${to_times_to_run}  --cache_start_size $cache_start_factor --optimize_lvl ${1} --cache_multiply $cache_multiply --numb_sizes $nsizes --thread_multiply $threads_multiple --results_dir ${results_dir} --host ${to_configuration} --size_list ${size_list} --numa_iterations=${numa_iterations} --mem_offset=${mem_offset} > /tmp/numa_streams_results/${2}_opt_${1}
+	mv ${results_dir}_* /tmp/numa_streams_results
 	cd ..
 }
 
 streams_run()
 {
-	run_numa_stream 3  "streams_O3_${to_tuned_setting}.out"
+	run_numa_stream 3  "numa_streams_O3_${to_tuned_setting}.out"
 }
 
 tools_git=https://github.com/redhat-performance/test_tools-wrappers
@@ -353,6 +353,7 @@ fi
 # to_home_root: home directory
 # to_configuration: configuration information
 # to_times_to_run: number of times to run the test
+# to_run_label: Label for the run
 # to_user: User on the test system running the test
 # to_sys_type: for results info, basically aws, azure or local
 # to_sysname: name of the system
@@ -486,7 +487,7 @@ streams_run
 wdir=`pwd`
 cd /tmp
 if [[ $results_dir == "" ]]; then
-	results_dir=results_numa_streams_${tuned_setting}_$(date "+%Y.%m.%d-%H.%M.%S")
+	results_dir=/tmp/results_numa_streams_${tuned_setting}_$(date "+%Y.%m.%d-%H.%M.%S")
 	rm results_${test_name}_${tuned_setting} 2> /dev/null
 	mkdir ${results_dir}
 	ln -s ${results_dir} results_${test_name}_${tuned_setting}
@@ -495,18 +496,14 @@ else
 	mkdir ${results_dir}
 	cp /tmp/results_numa_streams/* $results_dir
 fi
-${curdir}/test_tools/move_data $curdir $results_dir
+#${curdir}/test_tools/move_data $curdir $results_dir
 #
 # report the results
 #
 pushd $results_dir > /dev/null
-mv /tmp/streams.out .
+mv /tmp/${test_name}.out .
 mv /tmp/test_results_report .
-mv /tmp/numa_results/* .
-tar hcf results_${test_name}_${to_tuned_setting}.tar $results_dir
-rm -rf results_pbench.tar
 popd > /dev/null
-tar hcf results_${test_name}_${to_tuned_setting}.tar $results_dir
-working_dir=`ls -rtd /tmp/results*${test_name}* | grep -v tar | tail -1`
-find $working_dir  -type f | tar --transform 's/.*\///g' -cf results_pbench.tar --files-from=/dev/stdin
+tar hcf /tmp/results_${test_name}_${to_tuned_setting}.tar $results_dir
+${curdir}/test_tools/save_results --curdir $curdir --home_root $to_home_root --test_name $test_name --tuned_setting=$to_tuned_setting --version NONE --user $to_user  --copy_dir $results_dir
 exit 0
