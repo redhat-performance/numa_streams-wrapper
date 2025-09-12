@@ -293,7 +293,7 @@ run_numa_streams()
 
 	if [[ $pcp -eq 1 ]]; then
 		echo "Start PCP"
-		start_pcp ${pcpdir}/ streams $pcp_cfg
+		start_pcp ${pcpdir}/ numa_streams $pcp_cfg
 	fi
 	while [ $threads -lt $cpus ]
 	do
