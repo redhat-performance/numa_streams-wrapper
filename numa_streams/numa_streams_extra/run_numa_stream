@@ -36,6 +36,8 @@ cpus_per_node=""
 cache_cap_size=0
 host=`hostname`
 size_list="0"
+pcp=0
+pcpdir=""
 
 #
 # Define options
@@ -50,6 +52,7 @@ ARGUMENT_LIST=(
 	"numa_iterations"
 	"numb_sizes"
 	"optimize_lvl"
+	"pcp"
 	"results_dir"
 	"size_list"
 	"strides"
@@ -111,7 +114,11 @@ while [[ $# -gt 0 ]]; do
 			optim=${2}
 			shift 2
 		;;
-			
+		--pcp)
+			pcpdir=${2}
+			pcp=1
+			shift 2
+		;;
 		--results_dir)
 			echo setting result dir
 			resultdir=${2}
@@ -143,6 +150,11 @@ while [[ $# -gt 0 ]]; do
 	esac
 done
 
+if [[ $pcp -eq 1 ]]; then
+	source $TOOLS_BIN/pcp/pcp_commands.inc
+	setup_pcp
+	pcp_cfg=$TOOLS_BIN/pcp/default.cfg
+fi
 
 setup_sizing()
 {
@@ -196,15 +208,18 @@ install_numa_streams()
 {
 	dnf install wget gcc gcc-c++ autoconf hwloc hwloc-gui libomp  -y
 	git clone https://github.com/jemalloc/jemalloc.git
-	pushd jemalloc
+	pushd jemalloc > /dev/null
 	./autogen.sh
 	make
 	make install
-	popd
+	popd > /dev/null
 
 	mkdir /opt/AMD
 	touch /opt/AMD/setenv_AOCC.sh
 
+	#
+	# We are getting the test from phoronix.
+	#
 	wget http://www.phoronix-test-suite.com/benchmark-files/amd-stream-dynamic-1.tar.xz
 
 	tar -xf amd-stream-dynamic-1.tar.xz
@@ -248,7 +263,17 @@ create_numa_cache_list()
 	cache_size_mb="512 1000 2000 4000"
 	for cache_size  in $cache_size_mb
 	do
+		if [[ $pcp -eq 1 ]]; then
+			start_pcp_subset
+		fi
 		run_numa_test $threads $cache_size
+		if [[ $pcp -eq 1 ]]; then
+			echo "Send result to PCP archive"
+			out="${stream_size}_iter_${test_iters}"
+			result2pcp iteration_${iteration} ${out}
+			stop_pcp_subset
+		fi
+
 	done
 }
 
@@ -266,6 +291,10 @@ run_numa_streams()
 	cpus=`cat /proc/cpuinfo | grep processor | wc -l`
 	threads=1
 
+	if [[ $pcp -eq 1 ]]; then
+		echo "Start PCP"
+		start_pcp ${pcpdir}/ numa_streams $pcp_cfg
+	fi
 	while [ $threads -lt $cpus ]
 	do
 		echo create_numa_cache_list $threads >> /root/debug_dups
@@ -273,13 +302,15 @@ run_numa_streams()
 		threads=`echo "${threads}*2" | bc`
 	done
 	create_numa_cache_list $cpus
+	if [[ $pcp -eq 1 ]]; then
+		shutdown_pcp
+	fi
 
 	#
 	# Record highest
 	#
 	echo Test:MB/sec > highest.csv
 
-	# DJV
 	record_numa_stream Copy
 	record_numa_stream Scale
 	record_numa_stream Add
