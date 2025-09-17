@@ -218,7 +218,7 @@ install_numa_streams()
 	touch /opt/AMD/setenv_AOCC.sh
 
 	#
-	# We are getting the test from the phoronix git.
+	# We are getting the test from phoronix.
 	#
 	wget http://www.phoronix-test-suite.com/benchmark-files/amd-stream-dynamic-1.tar.xz
 
