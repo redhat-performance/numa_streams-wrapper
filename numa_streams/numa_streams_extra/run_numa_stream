@@ -206,7 +206,6 @@ setup_sizing()
 
 install_numa_streams()
 {
-	dnf install wget gcc gcc-c++ autoconf hwloc hwloc-gui libomp  -y
 	git clone https://github.com/jemalloc/jemalloc.git
 	pushd jemalloc > /dev/null
 	./autogen.sh
