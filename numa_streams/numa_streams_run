@@ -367,6 +367,12 @@ if [ ! -f "/tmp/${test_name}.out" ]; then
 	exit $?
 fi
 
+${TOOLS_BIN}/package_tool --wrapper_config ${run_dir}/numa_streams.json --no_packages $to_no_pkg_install
+if [[ $? -ne 0 ]]; then
+	echo Error: Package installation using ${TOOLS_BIN}/package_tool was unsuccessful.
+	exit 1
+fi
+
 #
 # Define user options
 #

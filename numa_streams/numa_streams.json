@@ -1,0 +1,58 @@
+{
+    "dependencies": {
+        "amzn": [
+            "git",
+            "gcc",
+            "bc",
+            "zip",
+            "unzip",
+            "numactl",
+            "wget",
+            "gcc-c++",
+            "autoconf",
+            "hwloc",
+            "hwloc-gui",
+            "libomp"
+        ],
+        "rhel": [
+            "git",
+            "gcc",
+            "bc",
+            "perf",
+            "zip",
+            "unzip",
+            "numactl",
+            "wget",
+            "gcc-c++",
+            "autoconf",
+            "hwloc",
+            "hwloc-gui",
+            "libomp"
+        ],
+        "sles": [
+            "git",
+            "gcc",
+            "make",
+            "bc",
+            "perf",
+            "unzip",
+            "zip",
+            "libnuma1",
+            "numactl"
+        ],
+        "ubuntu": [
+            "git",
+            "bc",
+            "zip",
+            "unzip",
+            "numactl",
+            "libnuma-dev",
+            "g++",
+            "autoconf",
+            "hwloc",
+            "libomp5-20"
+        ],
+        "pip": [
+        ]
+    }
+}
