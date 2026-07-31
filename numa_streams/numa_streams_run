@@ -36,6 +36,38 @@ else
 	run_dir=`echo $0 | cut -d'/' -f 1-${chars}`
 fi
 
+TOOLS_BIN="${HOME}/test_tools"
+export TOOLS_BIN
+tools_git=https://github.com/redhat-performance/test_tools-wrappers
+
+attempt_tools_generic()
+{
+	method="$1"
+        if [[ ! -d "$TOOLS_BIN" ]]; then
+                $method ${tools_git}/archive/refs/heads/main.zip
+                if [[ $? -eq 0 ]]; then
+                        unzip -q main.zip
+                        mv test_tools-wrappers-main ${TOOLS_BIN}
+                        rm main.zip
+                fi
+        fi
+}
+
+attempt_tools_git()
+{
+        if [[ ! -d "$TOOLS_BIN" ]]; then
+                git clone $tools_git "$TOOLS_BIN"
+                if [ $? -ne 0 ]; then
+                       echo "Error: pulling git $tools_git failed." >&2
+		       exit 101
+                fi
+        fi
+}
+
+attempt_tools_generic "wget"
+attempt_tools_generic "curl -L -O "
+attempt_tools_git
+
 #
 # streams arguments
 #
@@ -285,7 +317,6 @@ numa_streams_run()
 	run_numa_stream 3  "numa_streams_O3_${to_tuned_setting}.out"
 }
 
-tools_git=https://github.com/redhat-performance/test_tools-wrappers
 usage()
 {
 	echo Usage ${1}:
@@ -303,7 +334,7 @@ usage()
 	echo "--size_list <x,y...>:  List of array sizes in byte"
 	echo "--threads_multiple <value>: Multiply number threads by <value>. Default is 2"
 	echo "--tools_git <value>: git repo to retrieve the required tools from, default is ${tools_git}"
-	source test_tools/general_setup --usage
+	source ${TOOLS_BIN}general_setup --usage
 }
 
 
@@ -330,16 +361,6 @@ for arg in "$@"; do
 	fi
 done
 
-if [ ! -d "test_tools" ]; then
-        git clone $tools_git test_tools
-        if [ $? -ne 0 ]; then
-                echo pulling git $tools_git failed.
-                exit 1
-        fi
-else
-	echo Found an existing test_tools directory, using it.
-fi
-
 if [ $show_usage -eq 1 ]; then
 	usage $0
 fi
@@ -358,9 +379,8 @@ fi
 # to_tuned_setting: tuned setting
 #
 
-${curdir}/test_tools/gather_data ${curdir}
-source test_tools/general_setup "$@"
-export TOOLS_BIN
+${TOOLS_BIN}/gather_data ${curdir}
+source ${TOOLS_BIN}/general_setup "$@"
 
 if [ ! -f "/tmp/${test_name}.out" ]; then
 	${TOOLS_BIN}/invoke_test --test_name ${test_name} --command ${0} --options "${arguments}"
@@ -514,5 +534,5 @@ pushd $results_dir > /dev/null
 mv /tmp/${test_name}.out .
 popd > /dev/null
 tar hcf /tmp/results_${test_name}_${to_tuned_setting}.tar $results_dir
-${curdir}/test_tools/save_results --curdir $curdir --home_root $to_home_root --test_name $test_name --tuned_setting=$to_tuned_setting --version NONE --user $to_user  --copy_dir "$results_dir $pdir"
+${TOOLS_BIN}/save_results --curdir $curdir --home_root $to_home_root --test_name $test_name --tuned_setting=$to_tuned_setting --version NONE --user $to_user  --copy_dir "$results_dir $pdir"
 exit 0
